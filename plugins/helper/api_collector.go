@@ -305,26 +305,29 @@ func (collector *ApiCollector) handleResponse(reqData *RequestData) ApiAsyncCall
 }
 
 func (collector *ApiCollector) handleResponseWithPages(reqData *RequestData) ApiAsyncCallback {
-	return func(res *http.Response, e error) error {
-		if e != nil {
-			return e
+	return func(res *http.Response, err error) error {
+		if err != nil {
+			return err
 		}
 		// gather total pages
-		body, e := ioutil.ReadAll(res.Body)
-		if e != nil {
-			return e
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
 		}
-		res.Body.Close()
 		res.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		totalPages, e := collector.args.GetTotalPages(res, collector.args)
-		if e != nil {
-			return e
+		totalPages, err := collector.args.GetTotalPages(res, collector.args)
+		if err != nil {
+			return err
 		}
 		// save response body of first page
 		res.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		_, e = collector.saveRawData(res, reqData.Input)
-		if e != nil {
-			return e
+		_, err = collector.saveRawData(res, reqData.Input)
+		if err != nil {
+			return err
+		}
+		err = res.Body.Close()
+		if err != nil {
+			return err
 		}
 		if collector.args.Input == nil {
 			collector.args.Ctx.SetProgress(1, totalPages)
@@ -339,12 +342,13 @@ func (collector *ApiCollector) handleResponseWithPages(reqData *RequestData) Api
 				},
 				Input: reqData.Input,
 			}
-			e = collector.fetchAsync(reqDataTemp, collector.handleResponse(reqDataTemp))
-			if e != nil {
-				return e
+			err = collector.fetchAsync(reqDataTemp, collector.handleResponse(reqDataTemp))
+			if err != nil {
+				return err
 			}
 		}
 		return nil
+
 	}
 }
 
